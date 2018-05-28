@@ -1,27 +1,34 @@
 #!/usr/bin/env python3
 
-import opml
-import feedparser
-import youtube_dl
-from glob import glob
+# https://www.python.org/dev/peps/pep-0008/#version-bookkeeping
+# https://www.python.org/dev/peps/pep-0440/
+__version_info__ = (0, 3)
+__version__ = '.'.join(map(str, __version_info__))
 
-from time import time, mktime
+import argparse
+import sys
 from datetime import datetime
+from glob import glob
+from time import mktime, time
+
+import feedparser
+import opml
+import youtube_dl
 
 
-def main():
-    if len(glob('last.txt')) == 0:
-        f = open('last.txt', 'w')
+def main(opml_filename, last_filename, outtmpl):
+    if len(glob(last_filename)) == 0:
+        f = open(last_filename, 'w')
         f.write(str(time()))
-        print('Initialized a last.txt file with current timestamp.')
+        print('Initialized a {} file with current timestamp.'.format(last_filename))
         f.close()
 
     else:
-        f = open('last.txt', 'r')
+        f = open(last_filename)
         content = f.read()
         f.close()
 
-        outline = opml.parse('subs.xml')
+        outline = opml.parse(opml_filename)
 
         ptime = datetime.utcfromtimestamp(float(content))
         ftime = time()
@@ -47,6 +54,8 @@ def main():
             print(str(len(videos))+' new videos found')
 
         ydl_opts = {}
+        if outtmpl:
+            ydl_opts['outtmpl'] = outtmpl
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download(videos)
@@ -57,4 +66,19 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    # standard options
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-v", "--verbose", action="store_true")
+    group.add_argument("-q", "--quiet", action="store_true")
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s {}'.format(__version__))
+
+    parser.add_argument('--opml-file', default='subs.xml')
+    parser.add_argument('--last-file', default='last.txt')
+    parser.add_argument('-o', '--output', metavar='TEMPLATE', dest='outtmpl',
+                        help='YoutubeDL output filename template, see the '
+                             'YoutubeDL "OUTPUT TEMPLATE" for all the info')
+
+    args = parser.parse_args()
+    main(args.opml_file, args.last_file, args.outtmpl)

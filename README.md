@@ -29,6 +29,10 @@ Go to this directory and run:
 If running first time script will create last.txt with timestamp of last update.
 Running again will download any new vidoes that appeared in your subscriptions since last update.
 
+To see available commandline arguments run:
+
+    youtube-dl-subscriptions --help
+
 # Development
 
 Install for development with dependencies
