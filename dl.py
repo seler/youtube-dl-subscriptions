@@ -16,7 +16,26 @@ import opml
 import youtube_dl
 
 
-def main(opml_filename, last_filename, outtmpl):
+def main():
+    parser = argparse.ArgumentParser()
+    # standard options
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-v", "--verbose", action="store_true")
+    group.add_argument("-q", "--quiet", action="store_true")
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s {}'.format(__version__))
+
+    parser.add_argument('--opml-file', default='subs.xml')
+    parser.add_argument('--last-file', default='last.txt')
+    parser.add_argument('-o', '--output', metavar='TEMPLATE', dest='outtmpl',
+                        help='YoutubeDL output filename template, see the '
+                             'YoutubeDL "OUTPUT TEMPLATE" for all the info')
+
+    args = parser.parse_args()
+    dl(args.opml_file, args.last_file, args.outtmpl)
+
+
+def dl(opml_filename, last_filename, outtmpl):
     if len(glob(last_filename)) == 0:
         f = open(last_filename, 'w')
         f.write(str(time()))
@@ -66,19 +85,4 @@ def main(opml_filename, last_filename, outtmpl):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    # standard options
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-v", "--verbose", action="store_true")
-    group.add_argument("-q", "--quiet", action="store_true")
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s {}'.format(__version__))
-
-    parser.add_argument('--opml-file', default='subs.xml')
-    parser.add_argument('--last-file', default='last.txt')
-    parser.add_argument('-o', '--output', metavar='TEMPLATE', dest='outtmpl',
-                        help='YoutubeDL output filename template, see the '
-                             'YoutubeDL "OUTPUT TEMPLATE" for all the info')
-
-    args = parser.parse_args()
-    main(args.opml_file, args.last_file, args.outtmpl)
+    main()
