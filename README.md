@@ -12,3 +12,25 @@ Dependencies:
 * opml
 * feedparser
 * youtube-dl
+
+# Installation
+
+Clone/download this repository, then:
+
+    sudo python3 setup.py install
+
+# Running
+
+Save youtube subscriptions opml as subs.xml inside directory where you want to run the script.
+Go to this directory and run:
+
+    youtube-dl-subscriptions
+
+If running first time script will create last.txt with timestamp of last update.
+Running again will download any new vidoes that appeared in your subscriptions since last update.
+
+# Development
+
+Install for development with dependencies
+
+    pip install -e .
