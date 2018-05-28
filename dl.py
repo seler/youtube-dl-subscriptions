@@ -52,24 +52,24 @@ def dl(opml_filename, last_filename, outtmpl):
         ftime = time()
 
         urls = []
-
-        for i in range(0, len(outline[0])):
-            urls.append(outline[0][i].xmlUrl)
-
         videos = []
-        for i in range(0, len(urls)):
-            print('Parsing through channel '+str(i+1)+' out of '+str(len(urls)), end='\r')
-            feed = feedparser.parse(urls[i])
-            for j in range(0, len(feed['items'])):
-                timef = feed['items'][j]['published_parsed']
+
+        for i, channel in enumerate(outline[0]):
+            url = channel.xmlUrl
+            print('Parsing through channel {} out of {}'.format(i + 1, len(outline[0])), end='\r')
+            feed = feedparser.parse(url)
+            for item in feed['items']:
+                timef = item['published_parsed']
                 dt = datetime.fromtimestamp(mktime(timef))
                 if dt > ptime:
-                    videos.append(feed['items'][j]['link'])
+                    videos.append(item['link'])
+
+        print('')  # print newline
 
         if len(videos) == 0:
             print('Sorry, no new video found')
         else:
-            print(str(len(videos))+' new videos found')
+            print('{} new videos found'.format(len(videos)))
 
         ydl_opts = {}
         if outtmpl:
