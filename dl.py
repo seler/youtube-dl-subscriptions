@@ -36,17 +36,17 @@ def main():
 
 
 def dl(opml_filename, last_filename, outtmpl):
-    if len(glob(last_filename)) == 0:
-        f = open(last_filename, 'w')
-        f.write(str(time()))
-        print('Initialized a {} file with current timestamp.'.format(last_filename))
+    try:
+        f = open(last_filename)
+    except FileNotFoundError:
+        with open(last_filename, 'w') as f:
+            f.write(str(time()))
+            print('Initialized a {} file with current timestamp.'.format(last_filename))
+    else:
+        content = f.read()
         f.close()
 
-    else:
-        with open(last_filename) as f:
-            content = f.read()
-
-        outline = opml.parse(opml_filename)
+        channels = opml.parse(opml_filename)[0]
 
         ptime = datetime.utcfromtimestamp(float(content))
         ftime = time()
@@ -54,10 +54,9 @@ def dl(opml_filename, last_filename, outtmpl):
         urls = []
         videos = []
 
-        for i, channel in enumerate(outline[0]):
-            url = channel.xmlUrl
-            print('Parsing through channel {} out of {}'.format(i + 1, len(outline[0])), end='\r')
-            feed = feedparser.parse(url)
+        for i, channel in enumerate(channels):
+            print('Parsing through channel {} out of {}'.format(i + 1, len(channels)), end='\r')
+            feed = feedparser.parse(channel.xmlUrl)
             for item in feed['items']:
                 timef = item['published_parsed']
                 dt = datetime.fromtimestamp(mktime(timef))
@@ -66,10 +65,10 @@ def dl(opml_filename, last_filename, outtmpl):
 
         print('')  # print newline
 
-        if len(videos) == 0:
-            print('Sorry, no new video found')
-        else:
+        if videos:
             print('{} new videos found'.format(len(videos)))
+        else:
+            print('Sorry, no new video found')
 
         ydl_opts = {}
         if outtmpl:
