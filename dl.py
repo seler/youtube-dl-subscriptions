@@ -43,9 +43,8 @@ def dl(opml_filename, last_filename, outtmpl):
         f.close()
 
     else:
-        f = open(last_filename)
-        content = f.read()
-        f.close()
+        with open(last_filename) as f:
+            content = f.read()
 
         outline = opml.parse(opml_filename)
 
@@ -79,9 +78,8 @@ def dl(opml_filename, last_filename, outtmpl):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download(videos)
 
-        f = open('last.txt', 'w')
-        f.write(str(ftime))
-        f.close()
+        with open(last_filename, 'w') as f:
+            f.write(str(ftime))
 
 
 if __name__ == '__main__':
