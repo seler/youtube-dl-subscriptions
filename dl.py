@@ -6,14 +6,23 @@ __version_info__ = (0, 3)
 __version__ = '.'.join(map(str, __version_info__))
 
 import argparse
-import sys
-from datetime import datetime
-from glob import glob
-from time import mktime, time
 
 import feedparser
 import opml
 import youtube_dl
+
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
+
+Base = declarative_base()
+
+
+class Video(Base):
+    __tablename__ = 'video'
+    id = Column(Integer, primary_key=True)
+    url = Column(String(250), nullable=False, unique=True)
 
 
 def main():
@@ -26,59 +35,43 @@ def main():
                         version='%(prog)s {}'.format(__version__))
 
     parser.add_argument('--opml-file', default='subs.xml')
-    parser.add_argument('--last-file', default='last.txt')
+    parser.add_argument('--database', default='sqlite:///ytdls.db')
     parser.add_argument('-o', '--output', metavar='TEMPLATE', dest='outtmpl',
                         help='YoutubeDL output filename template, see the '
                              'YoutubeDL "OUTPUT TEMPLATE" for all the info')
 
     args = parser.parse_args()
-    dl(args.opml_file, args.last_file, args.outtmpl)
+    dl(args.opml_file, args.database, args.outtmpl)
 
 
-def dl(opml_filename, last_filename, outtmpl):
-    try:
-        f = open(last_filename)
-    except FileNotFoundError:
-        with open(last_filename, 'w') as f:
-            f.write(str(time()))
-            print('Initialized a {} file with current timestamp.'.format(last_filename))
-    else:
-        content = f.read()
-        f.close()
+def dl(opml_filename, database, outtmpl):
+    engine = create_engine(database)
+    Base.metadata.create_all(engine)
+    Base.metadata.bind = engine
+    session = sessionmaker(bind=engine)()
 
-        channels = opml.parse(opml_filename)[0]
+    channels = opml.parse(opml_filename)[0]
 
-        ptime = datetime.utcfromtimestamp(float(content))
-        ftime = time()
+    videos = []
 
-        urls = []
-        videos = []
+    for i, channel in enumerate(channels):
+        feed = feedparser.parse(channel.xmlUrl)
+        for item in feed['items']:
+            url = item['link']
+            session.add(Video(url=url))
+            try:
+                session.commit()
+            except IntegrityError:
+                session.rollback()
+            else:
+                videos.append(url)
 
-        for i, channel in enumerate(channels):
-            print('Parsing through channel {} out of {}'.format(i + 1, len(channels)), end='\r')
-            feed = feedparser.parse(channel.xmlUrl)
-            for item in feed['items']:
-                timef = item['published_parsed']
-                dt = datetime.fromtimestamp(mktime(timef))
-                if dt > ptime:
-                    videos.append(item['link'])
+    ydl_opts = {}
+    if outtmpl:
+        ydl_opts['outtmpl'] = outtmpl
 
-        print('')  # print newline
-
-        if videos:
-            print('{} new videos found'.format(len(videos)))
-        else:
-            print('Sorry, no new video found')
-
-        ydl_opts = {}
-        if outtmpl:
-            ydl_opts['outtmpl'] = outtmpl
-
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download(videos)
-
-        with open(last_filename, 'w') as f:
-            f.write(str(ftime))
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download(videos)
 
 
 if __name__ == '__main__':
