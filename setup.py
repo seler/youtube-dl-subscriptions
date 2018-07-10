@@ -15,5 +15,6 @@ setup(
         'opml',
         'feedparser',
         'youtube-dl',
+        'sqlalchemy',
     ],
 )
